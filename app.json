@@ -1,0 +1,28 @@
+{
+  "id": "4f843100-1417-42e4-a019-c7a9e0d908ff",
+  "name": "CHEP PALLET",
+  "publisher": "Kamal Shah",
+  "version": "1.0.0.0",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "1.0.0.0",
+  "application": "14.0.0.0",
+  "idRanges": [
+    {
+      "from": 60100,
+      "to": 60199
+    }
+  ],
+  "showMyCode": true,
+  "runtime": "12.0",
+  "features": [
+    "NoImplicitWith"
+  ]
+}

@@ -1,0 +1,193 @@
+SIP-TO ADDRESS CHEP
+
+
+tableextension 60100 "Ship-to Address CHEP Ext" extends "Ship-to Address"
+{
+    fields
+    {
+        field(60100; "CHEP Account No."; Code[20])
+        {
+            Caption = 'CHEP Account No.';
+            DataClassification = CustomerContent;
+        }
+    }
+}
+
+
+
+
+-----------------------------
+SALES Header
+
+
+tableextension 60101 "Sales Header CHEP Ext" extends "Sales Header"
+{
+    fields
+    {
+        field(60100; "CHEP Pallets Qty"; Integer)
+        {
+            Caption = 'CHEP Pallets Qty';
+            MinValue = 0;
+            DataClassification = CustomerContent;
+        }
+    }
+}
+
+-----------------------------------------
+
+POSTE SALES SHIPMENT
+
+enum 60100 "CHEP Export Status"
+{
+    Extensible = true;
+    value(0; New) { Caption = 'New'; }
+    value(1; Exported) { Caption = 'Exported'; }
+}
+
+tableextension 60102 "Sales Shpt CHEP Ext" extends "Sales Shipment Header"
+{
+    fields
+    {
+        field(60100; "CHEP Pallets Qty"; Integer) { Caption = 'CHEP Pallets Qty'; MinValue = 0; }
+        field(60101; "CHEP Account No."; Code[20]) { Caption = 'CHEP Account No.'; }
+
+        field(60102; "CHEP Export Status"; Enum "CHEP Export Status") { Caption = 'CHEP Export Status'; }
+        field(60103; "CHEP Exported At"; DateTime) { Caption = 'CHEP Exported At'; }
+        field(60104; "CHEP Export Batch Id"; Code[20]) { Caption = 'CHEP Export Batch Id'; }
+    }
+}
+
+
+------------------------------------
+COPU VALUES DURING POSTING
+
+codeunit 60120 "CHEP Posting Subscribers"
+{
+    [EventSubscriber(ObjectType::Codeunit, Codeunit::"Sales-Post", 'OnAfterInsertShipmentHeader', '', false, false)]
+    local procedure OnAfterInsertShipmentHeader(var SalesShipmentHeader: Record "Sales Shipment Header"; SalesHeader: Record "Sales Header")
+    var
+        ShipTo: Record "Ship-to Address";
+    begin
+        SalesShipmentHeader."CHEP Pallets Qty" := SalesHeader."CHEP Pallets Qty";
+
+        if (SalesHeader."Sell-to Customer No." <> '') and (SalesHeader."Ship-to Code" <> '') then
+            if ShipTo.Get(SalesHeader."Sell-to Customer No.", SalesHeader."Ship-to Code") then
+                SalesShipmentHeader."CHEP Account No." := ShipTo."CHEP Account No.";
+
+        SalesShipmentHeader."CHEP Export Status" := SalesShipmentHeader."CHEP Export Status"::New;
+        SalesShipmentHeader.Modify(true);
+    end;
+}
+
+
+-----------------------------------
+CSV Export
+codeunit 60130 "CHEP CSV Export"
+{
+    procedure ExportNewShipments()
+    var
+        Shpt: Record "Sales Shipment Header";
+        TempBlob: Codeunit "Temp Blob";
+        OutS: OutStream;
+        InS: InStream;
+        FileName: Text;
+        BatchId: Code[20];
+    begin
+        BatchId := CopyStr(Format(CurrentDateTime(), 0, 9), 1, 20);
+
+        TempBlob.CreateOutStream(OutS);
+        WriteCsvHeader(OutS);
+
+        Shpt.SetRange("CHEP Export Status", Shpt."CHEP Export Status"::New);
+        if Shpt.FindSet(true) then
+            repeat
+                if Shpt."CHEP Pallets Qty" <= 0 then
+                    continue;
+
+                if Shpt."CHEP Account No." = '' then
+                    Error('Missing CHEP Account No. for Posted Shipment %1 (Ship-to Code: %2).', Shpt."No.", Shpt."Ship-to Code");
+
+                WriteCsvLine(OutS, Shpt);
+                MarkExported(Shpt, BatchId);
+                LogExport(Shpt, BatchId);
+            until Shpt.Next() = 0;
+
+        TempBlob.CreateInStream(InS);
+        FileName := StrSubstNo('CHEP_Pallets_%1.csv', FormatDateISO(Today));
+
+        DownloadFromStream(InS, 'CHEP Export', '', 'CSV file (*.csv)|*.csv', FileName);
+    end;
+
+    local procedure WriteCsvHeader(var OutS: OutStream)
+    begin
+        OutS.WriteText('Date,PalletQty,CHEPAccountNo');
+        OutS.WriteText('\r\n');
+    end;
+
+    local procedure WriteCsvLine(var OutS: OutStream; Shpt: Record "Sales Shipment Header")
+    var
+        DateTxt: Text;
+    begin
+        DateTxt := FormatDateISO(Shpt."Posting Date");
+        OutS.WriteText(StrSubstNo('%1,%2,%3', DateTxt, Shpt."CHEP Pallets Qty", EscapeCsv(Shpt."CHEP Account No.")));
+        OutS.WriteText('\r\n');
+    end;
+
+    local procedure FormatDateISO(D: Date): Text
+    // returns YYYY-MM-DD
+    begin
+        exit(StrSubstNo('%1-%2-%3',
+            Pad2(Format(Date2DMY(D, 3))), // year
+            Pad2(Format(Date2DMY(D, 2))), // month
+            Pad2(Format(Date2DMY(D, 1)))  // day
+        ));
+    end;
+
+    local procedure Pad2(T: Text): Text
+    begin
+        if StrLen(T) = 1 then
+            exit('0' + T);
+        exit(T);
+    end;
+
+    local procedure EscapeCsv(Value: Text): Text
+    begin
+        if (StrPos(Value, ',') > 0) or (StrPos(Value, '"') > 0) then
+            exit('"' + DelChr(Value, '=', '"') + '"');
+        exit(Value);
+    end;
+
+    local procedure MarkExported(var Shpt: Record "Sales Shipment Header"; BatchId: Code[20])
+    begin
+        Shpt."CHEP Export Status" := Shpt."CHEP Export Status"::Exported;
+        Shpt."CHEP Exported At" := CurrentDateTime();
+        Shpt."CHEP Export Batch Id" := BatchId;
+        Shpt.Modify(true);
+    end;
+
+    local procedure LogExport(Shpt: Record "Sales Shipment Header"; BatchId: Code[20])
+    var
+        Log: Record "CHEP Export Log";
+    begin
+        Log.Init();
+        Log."Shipment No." := Shpt."No.";
+        Log."Shipment Date" := Shpt."Posting Date";
+        Log."Ship-to Code" := Shpt."Ship-to Code";
+        Log."CHEP Account No." := Shpt."CHEP Account No.";
+        Log."CHEP Qty" := Shpt."CHEP Pallets Qty";
+        Log."Exported At" := CurrentDateTime();
+        Log."Exported By" := UserId();
+        Log."Batch Id" := BatchId;
+        Log.Insert(true);
+    end;
+}
+-----------------------
+6) User action (where users click “Export”)
+
+Add an action on Posted Sales Shipments list (or a small CHEP role center page later):
+
+Action caption: Export CHEP CSV
+
+Runs codeunit 60130 → ExportNewShipments()
+
+
