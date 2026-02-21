@@ -14,6 +14,7 @@ page 60131 "CHEP Export Log"
             repeater(Lines)
             {
                 field("Entry No."; Rec."Entry No.") { ApplicationArea = All; }
+                field("Source Type"; Rec."Source Type") { ApplicationArea = All; }
                 field("Batch Id"; Rec."Batch Id") { ApplicationArea = All; }
                 field("Shipment No."; Rec."Shipment No.") { ApplicationArea = All; }
                 field("Shipment Date"; Rec."Shipment Date") { ApplicationArea = All; }
@@ -32,6 +33,18 @@ page 60131 "CHEP Export Log"
     {
         area(Processing)
         {
+            action("Export CHEP CSV")
+            {
+                ApplicationArea = All;
+                Caption = 'Export CHEP CSV';
+                Image = Export;
+                trigger OnAction()
+                var
+                    CHEPExport: Codeunit "CHEP CSV Export";
+                begin
+                    CHEPExport.ExportNewShipments();
+                end;
+            }
             action("Reset for Testing")
             {
                 ApplicationArea = All;

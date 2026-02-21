@@ -71,6 +71,12 @@ table 60131 "CHEP Export Log"
             Caption = 'External Document No.';
             DataClassification = CustomerContent;
         }
+
+        field(12; "Source Type"; Enum "CHEP Source Type")
+        {
+            Caption = 'Source Type';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys
