@@ -1,0 +1,12 @@
+# AL compiler output
+*.app
+
+# AL package cache (downloaded symbols - not source code)
+.alpackages/
+
+# AL snapshots
+.snapshots/
+
+# Excel/PDF reference documents
+*.xlsx
+*.pdf

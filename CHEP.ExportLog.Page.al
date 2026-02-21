@@ -27,4 +27,23 @@ page 60131 "CHEP Export Log"
             }
         }
     }
+
+    actions
+    {
+        area(Processing)
+        {
+            action("Reset for Testing")
+            {
+                ApplicationArea = All;
+                Caption = 'Reset for Testing';
+                Image = Restore;
+                trigger OnAction()
+                var
+                    CHEPReset: Codeunit "CHEP Test Reset";
+                begin
+                    CHEPReset.ResetExportData();
+                end;
+            }
+        }
+    }
 }
