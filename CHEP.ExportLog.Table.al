@@ -59,6 +59,18 @@ table 60131 "CHEP Export Log"
             Caption = 'Batch Id';
             DataClassification = CustomerContent;
         }
+
+        field(10; "From Code"; Code[20])
+        {
+            Caption = 'From Code';
+            DataClassification = CustomerContent;
+        }
+
+        field(11; "External Document No."; Code[35])
+        {
+            Caption = 'External Document No.';
+            DataClassification = CustomerContent;
+        }
     }
 
     keys
@@ -78,13 +90,17 @@ table 60131 "CHEP Export Log"
     }
 
     trigger OnInsert()
+    var
+        LastLog: Record "CHEP Export Log";
     begin
         // Auto-increment Entry No.
+        // Use a separate record variable so FindLast() does not overwrite
+        // the current buffer's SystemId, which would cause a duplicate key error.
         if "Entry No." = 0 then begin
-            if not FindLast() then
-                "Entry No." := 1
+            if LastLog.FindLast() then
+                "Entry No." := LastLog."Entry No." + 1
             else
-                "Entry No." := "Entry No." + 1;
+                "Entry No." := 1;
         end;
     end;
 }

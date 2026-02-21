@@ -8,5 +8,6 @@ tableextension 60102 "Sales Shpt CHEP Ext" extends "Sales Shipment Header"
         field(60102; "CHEP Export Status"; Enum "CHEP Export Status") { Caption = 'CHEP Export Status'; }
         field(60103; "CHEP Exported At"; DateTime) { Caption = 'CHEP Exported At'; }
         field(60104; "CHEP Export Batch Id"; Code[20]) { Caption = 'CHEP Export Batch Id'; }
+        field(60105; "CHEP From"; Code[20]) { Caption = 'CHEP From'; }
     }
 }

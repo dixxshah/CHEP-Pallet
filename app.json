@@ -20,7 +20,11 @@
       "to": 60199
     }
   ],
-  "showMyCode": true,
+  "resourceExposurePolicy": {
+    "allowDebugging": true,
+    "allowDownloadingSource": false,
+    "includeSourceInSymbolFile": false
+  },
   "runtime": "12.0",
   "features": [
     "NoImplicitWith"

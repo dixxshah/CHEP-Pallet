@@ -7,12 +7,12 @@
       "request": "launch",
       "environmentType": "Sandbox",
       "environmentName": "SB-20251107",
-      "tenant": "shahtrading.com
+      "tenant": "shahtrading.com",
       "startupObjectId": 22,
       "startupObjectType": "Page",
       "breakOnError": true,
-      "launchBrowser": true
-      "schemaUpdateMode": "Recreate",
+      "launchBrowser": true,
+      "schemaUpdateMode": "ForceSync",
     }
   ]
 }

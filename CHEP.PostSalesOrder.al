@@ -8,6 +8,7 @@ codeunit 60120 "CHEP Posting Subscribers"
     var
         Cust: Record Customer;
         ShipTo: Record "Ship-to Address";
+        Loc: Record Location;
         ChepNo: Code[20];
     begin
         // Copy qty (assuming Sales Header field is still "CHEP Qty")
@@ -26,6 +27,11 @@ codeunit 60120 "CHEP Posting Subscribers"
 
         // Write resolved CHEP No. onto posted shipment
         SalesShipmentHeader."CHEP No." := ChepNo;
+
+        // Resolve CHEP From code from the shipment Location
+        if SalesHeader."Location Code" <> '' then
+            if Loc.Get(SalesHeader."Location Code") then
+                SalesShipmentHeader."CHEP From" := Loc."CHEP From";
 
         // Default export status
         SalesShipmentHeader."CHEP Export Status" := SalesShipmentHeader."CHEP Export Status"::New;

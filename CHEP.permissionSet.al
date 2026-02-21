@@ -5,5 +5,8 @@ permissionset 60130 "CHEP PALLET"
 
     Permissions =
         tabledata "Sales Shipment Header" = RM,
-        tabledata "Sales Shipment Line" = R; // optional if you later need lines
+        tabledata "Sales Shipment Line" = R, // optional if you later need lines
+        tabledata Location = R,
+        tabledata "CHEP Export Log" = RIMD,
+        page "CHEP Export Log" = X;
 }

@@ -18,6 +18,11 @@ pageextension 60103 "Posted Sales Shpt CHEP Ext" extends "Posted Sales Shipment"
                     ApplicationArea = All;
                 }
 
+                field("CHEP From"; Rec."CHEP From")
+                {
+                    ApplicationArea = All;
+                }
+
                 field("CHEP Export Status"; Rec."CHEP Export Status")
                 {
                     ApplicationArea = All;

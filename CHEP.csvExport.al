@@ -13,6 +13,7 @@ codeunit 60130 "CHEP CSV Export"
         FileName: Text;
         BatchId: Code[20];
         ExportCount: Integer;
+        TempShpt: Record "Sales Shipment Header" temporary;
     begin
         BatchId := MakeBatchId();
         ExportCount := 0;
@@ -20,29 +21,31 @@ codeunit 60130 "CHEP CSV Export"
         TempBlob.CreateOutStream(OutS);
         WriteCsvHeader(OutS);
 
-        Shpt.SetCurrentKey("CHEP Export Status");
+        // First pass: collect all eligible shipments into a temporary record
+        // Pre-filter at SQL level to avoid a full table scan on historical shipments
         Shpt.SetRange("CHEP Export Status", Shpt."CHEP Export Status"::New);
-
-        if Shpt.FindSet(true) then
+        Shpt.SetFilter("CHEP Qty", '>%1', 0);
+        Shpt.SetFilter("CHEP No.", '<>%1', '');
+        if Shpt.FindSet() then
             repeat
-                if Shpt."CHEP Qty" > 0 then begin
-                    if Shpt."CHEP No." = '' then
-                        Error(
-                            'Missing CHEP No. for Posted Shipment %1 (Ship-to Code: %2).',
-                            Shpt."No.",
-                            Shpt."Ship-to Code"
-                        );
+                TempShpt.Init();
+                TempShpt.TransferFields(Shpt);
+                TempShpt.Insert();
+            until Shpt.Next() = 0;
 
+        if TempShpt.IsEmpty then
+            Error('No new CHEP shipments found to export.');
+
+        // Second pass: process each shipment from the temporary record
+        if TempShpt.FindSet() then
+            repeat
+                if Shpt.Get(TempShpt."No.") then begin
                     WriteCsvLine(OutS, Shpt);
                     MarkExported(Shpt, BatchId);
                     LogExport(Shpt, BatchId);
-
                     ExportCount += 1;
                 end;
-            until Shpt.Next() = 0;
-
-        if ExportCount = 0 then
-            Error('No new CHEP shipments found to export.');
+            until TempShpt.Next() = 0;
 
         TempBlob.CreateInStream(InS);
         FileName := StrSubstNo('CHEP_Pallets_%1_%2.csv', FormatDateISO(Today), BatchId);
@@ -51,23 +54,30 @@ codeunit 60130 "CHEP CSV Export"
     end;
 
     local procedure WriteCsvHeader(var OutS: OutStream)
+    var
+        CrLf: Text[2];
     begin
-        OutS.WriteText('Date,PalletQty,CHEPNo');
-        OutS.WriteText('\r\n');
+        CrLf[1] := 13;
+        CrLf[2] := 10;
+        OutS.WriteText('Date,PalletQty,FromCode,CHEPNo,ExternalDocNo' + CrLf);
     end;
 
     local procedure WriteCsvLine(var OutS: OutStream; Shpt: Record "Sales Shipment Header")
     var
         DateTxt: Text;
+        CrLf: Text[2];
     begin
+        CrLf[1] := 13;
+        CrLf[2] := 10;
         DateTxt := FormatDateISO(Shpt."Posting Date");
         OutS.WriteText(StrSubstNo(
-            '%1,%2,%3',
+            '%1,%2,%3,%4,%5',
             DateTxt,
             Shpt."CHEP Qty",
-            EscapeCsv(Shpt."CHEP No.")
-        ));
-        OutS.WriteText('\r\n');
+            EscapeCsv(Shpt."CHEP From"),
+            EscapeCsv(Shpt."CHEP No."),
+            EscapeCsv(Shpt."External Document No.")
+        ) + CrLf);
     end;
 
     local procedure MarkExported(var Shpt: Record "Sales Shipment Header"; BatchId: Code[20])
@@ -75,7 +85,7 @@ codeunit 60130 "CHEP CSV Export"
         Shpt."CHEP Export Status" := Shpt."CHEP Export Status"::Exported;
         Shpt."CHEP Exported At" := CurrentDateTime();
         Shpt."CHEP Export Batch Id" := BatchId;
-        Shpt.Modify(true);
+        Shpt.Modify(false);
     end;
 
     local procedure LogExport(Shpt: Record "Sales Shipment Header"; BatchId: Code[20])
@@ -86,15 +96,17 @@ codeunit 60130 "CHEP CSV Export"
         Log."Shipment No." := Shpt."No.";
         Log."Shipment Date" := Shpt."Posting Date";
         Log."Ship-to Code" := Shpt."Ship-to Code";
+        Log."From Code" := Shpt."CHEP From";
         Log."CHEP No." := Shpt."CHEP No.";
         Log."CHEP Qty" := Shpt."CHEP Qty";
+        Log."External Document No." := Shpt."External Document No.";
         Log."Exported At" := CurrentDateTime();
         Log."Exported By" := UserId();
         Log."Batch Id" := BatchId;
         Log.Insert(true);
     end;
 
-    local procedure MakeBatchId(): Code[20]
+    procedure MakeBatchId(): Code[20]
     var
         Raw: Text;
     begin
