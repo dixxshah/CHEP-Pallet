@@ -10,6 +10,7 @@ codeunit 60120 "CHEP Posting Subscribers"
         ShipTo: Record "Ship-to Address";
         Loc: Record Location;
         ChepNo: Code[20];
+        ShipToTxt: Text;
     begin
         // Copy qty (assuming Sales Header field is still "CHEP Qty")
         SalesShipmentHeader."CHEP Qty" := SalesHeader."CHEP Qty";
@@ -32,6 +33,21 @@ codeunit 60120 "CHEP Posting Subscribers"
         if SalesHeader."Location Code" <> '' then
             if Loc.Get(SalesHeader."Location Code") then
                 SalesShipmentHeader."CHEP From" := Loc."CHEP From";
+
+        // Block posting if CHEP Qty > 0 but setup is incomplete
+        if SalesShipmentHeader."CHEP Qty" > 0 then begin
+            if SalesHeader."Ship-to Code" <> '' then
+                ShipToTxt := StrSubstNo(' / Ship-to %1', SalesHeader."Ship-to Code");
+
+            if SalesShipmentHeader."CHEP No." = '' then
+                Error('Sales Order %1: CHEP Qty is %2 but no CHEP account (CHEP No.) is set on Customer %3%4.\Set the CHEP No. on the customer or ship-to address before posting.',
+                    SalesHeader."No.", SalesShipmentHeader."CHEP Qty",
+                    SalesHeader."Sell-to Customer No.", ShipToTxt);
+
+            if SalesShipmentHeader."CHEP From" = '' then
+                Error('Sales Order %1: CHEP Qty is %2 but Location %3 has no CHEP From account set up.\Set the CHEP From code on the Location before posting.',
+                    SalesHeader."No.", SalesShipmentHeader."CHEP Qty", SalesHeader."Location Code");
+        end;
 
         // Default export status
         SalesShipmentHeader."CHEP Export Status" := SalesShipmentHeader."CHEP Export Status"::New;

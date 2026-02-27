@@ -22,6 +22,17 @@ codeunit 60121 "CHEP Transfer Post Subscribers"
             if ToLoc.Get(TransferHeader."Transfer-to Code") then
                 TransferShipmentHeader."CHEP To" := ToLoc."CHEP From";
 
+        // Block posting if CHEP Qty > 0 but setup is incomplete
+        if TransferShipmentHeader."CHEP Qty" > 0 then begin
+            if TransferShipmentHeader."CHEP From" = '' then
+                Error('Transfer Order %1: CHEP Qty is %2 but Transfer-from Location %3 has no CHEP From account set up.\Set the CHEP From code on the Location before posting.',
+                    TransferHeader."No.", TransferHeader."CHEP Qty", TransferHeader."Transfer-from Code");
+
+            if TransferShipmentHeader."CHEP To" = '' then
+                Error('Transfer Order %1: CHEP Qty is %2 but Transfer-to Location %3 has no CHEP From account set up.\Set the CHEP From code on the Location before posting.',
+                    TransferHeader."No.", TransferHeader."CHEP Qty", TransferHeader."Transfer-to Code");
+        end;
+
         // Default export status
         TransferShipmentHeader."CHEP Export Status" := TransferShipmentHeader."CHEP Export Status"::New;
 

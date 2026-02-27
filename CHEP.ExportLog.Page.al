@@ -45,6 +45,33 @@ page 60131 "CHEP Export Log"
                     CHEPExport.ExportNewShipments();
                 end;
             }
+            action("Export CHEP Excel")
+            {
+                ApplicationArea = All;
+                Caption = 'Export CHEP Excel';
+                Image = ExportToExcel;
+                trigger OnAction()
+                var
+                    CHEPExport: Codeunit "CHEP CSV Export";
+                begin
+                    CHEPExport.ExportNewShipmentsExcel();
+                end;
+            }
+            action("Reset Export Flag")
+            {
+                ApplicationArea = All;
+                Caption = 'Reset Export Flag';
+                Image = Undo;
+                trigger OnAction()
+                var
+                    SelectedLog: Record "CHEP Export Log";
+                    CHEPExport: Codeunit "CHEP CSV Export";
+                begin
+                    CurrPage.SetSelectionFilter(SelectedLog);
+                    CHEPExport.ResetExportFlag(SelectedLog);
+                    CurrPage.Update(false);
+                end;
+            }
             action("Reset for Testing")
             {
                 ApplicationArea = All;

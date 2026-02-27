@@ -47,11 +47,25 @@ pageextension 60103 "Posted Sales Shpt CHEP Ext" extends "Posted Sales Shipment"
             action("Export CHEP CSV")
             {
                 ApplicationArea = All;
+                Caption = 'Export CHEP CSV';
+                Image = Export;
                 trigger OnAction()
                 var
                     CHEPExport: Codeunit "CHEP CSV Export";
                 begin
                     CHEPExport.ExportNewShipments();
+                end;
+            }
+            action("Export CHEP Excel")
+            {
+                ApplicationArea = All;
+                Caption = 'Export CHEP Excel';
+                Image = ExportToExcel;
+                trigger OnAction()
+                var
+                    CHEPExport: Codeunit "CHEP CSV Export";
+                begin
+                    CHEPExport.ExportNewShipmentsExcel();
                 end;
             }
         }
