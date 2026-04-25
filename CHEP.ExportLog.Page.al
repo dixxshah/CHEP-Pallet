@@ -33,18 +33,6 @@ page 60131 "CHEP Export Log"
     {
         area(Processing)
         {
-            action("Export CHEP CSV")
-            {
-                ApplicationArea = All;
-                Caption = 'Export CHEP CSV';
-                Image = Export;
-                trigger OnAction()
-                var
-                    CHEPExport: Codeunit "CHEP CSV Export";
-                begin
-                    CHEPExport.ExportNewShipments();
-                end;
-            }
             action("Export CHEP Excel")
             {
                 ApplicationArea = All;
